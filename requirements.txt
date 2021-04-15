@@ -1,0 +1,5 @@
+beautifulsoup4
+telethon
+phonenumbers
+csv
+json

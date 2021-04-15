@@ -1,0 +1,16 @@
+{
+    "junior":
+            {
+                "name": "junior",
+                "url": "https://junior.ctf.com",
+                "admin_name": "admin",
+                "admin_password": "123"
+            },
+    "senior":
+            {
+                "name": "senior",
+                "url": "https://senior.ctf.com",
+                "admin_name": "admin",
+                "admin_password": "123"
+            }
+}
