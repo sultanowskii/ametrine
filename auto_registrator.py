@@ -1,38 +1,10 @@
 import csv
 import requests
-from bs4 import BeautifulSoup
 import json
 
 from config import *
 from ametrine.classes import *
-
-
-def abort_if_badocde(r: requests.Response) -> str:
-    if r.status_code not in GOOD_STATUSES:
-        print('[!] Bad status')
-        print(r.status_code)
-        print(r.text)
-        exit(1)
-    return False
-
-
-def get_csrf_token(league: League, url: str) -> str:
-    r = league.session.get(league.base_url + url)  
-    abort_if_badocde(r)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    idx = r.text.index("'csrfNonce': \"") + 14
-    csrf = r.text[idx:idx + CSRF_TOKEN_LEN]
-    return csrf
-
-
-def get_nonce(league: League, url: str) -> str:
-    r = league.session.get(league.base_url + url)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    result = soup.find('input', {'id': 'nonce'})
-    if len(result.attrs['value']) != NONCE_LEN:
-        print(f'[!] Invalid NONCE number for league {league["name"]}')
-        exit(0)
-    return result.attrs['value']
+from ametrine.funcs import *
 
 
 def main():    
@@ -54,10 +26,10 @@ def main():
     print('==========Logging in==========')
     for league in [leagues[k] for k in leagues.keys()]:
         league.nonce = get_nonce(league, '/login')
-        
-        r = league.session.post(league.base_url + '/login', data={'name': league.get_admin_name(), 'password': league.get_admin_password(), 'nonce': league.nonce, '_submit': 'Submit'})
-        if not abort_if_badocde(r):
-            print(f'[*] Logged in {league.name} league successfully')
+        if login_admin(league):
+            print(f'[*] Logged in {league.name} league successfully with handle {league.get_admin_name()}')
+        else:
+            print(f'[!] Failed to login to {league.name} with handle {league.get_admin_name()}')
 
     # Team registration
     print('======Teams registration======')
@@ -78,9 +50,8 @@ def main():
             }
 
             csrf = get_csrf_token(league, '/admin/teams/new')
-            r = league.session.post(league.base_url + '/api/v1/teams', json=json_team, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
-            if not abort_if_badocde(r):
-                print(f'[.] Team {team["name"]} registered successfully to {team["league"]} league')
+            r = league.post('/api/v1/teams', json=json_team, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
+            print(f'[.] Team {team["name"]} registered successfully to {team["league"]} league')
             league.teams[team['name']] = Team(team['name'], team['email'], team['password'], r.json()['data']['id'])
 
     print('======Users registration======')
@@ -108,17 +79,15 @@ def main():
             
             # Register user with CSRF token on page (without it we get 403 from server)
             csrf = get_csrf_token(league, '/admin/users/new')
-            r = league.session.post(league.base_url + '/api/v1/users', json=json_user, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
-            if not abort_if_badocde(r):
-                print(f'[.] User {user["name"]} registered successfully to {user["league"]} league')
+            r = league.post('/api/v1/users', json=json_user, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
+            print(f'[.] User {user["name"]} registered successfully to {user["league"]} league')
             user_id = r.json()['data']['id']
             team_id = league.teams[user['team']].sid
 
             # Add user to team
             csrf = get_csrf_token(league, f'/admin/teams/{team_id}')
-            r = league.session.post(league.base_url + f'/api/v1/teams/{team_id}/members', json={'user_id': user_id}, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
-            if not abort_if_badocde(r):
-                print(f'[.] User {user["name"]} added successfully to {user["team"]} team in {user["league"]} league')
+            r = league.post(f'/api/v1/teams/{team_id}/members', json={'user_id': user_id}, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
+            print(f'[.] User {user["name"]} added successfully to {user["team"]} team in {user["league"]} league')
             league.teams[user['team']].users[user['name']] = User(user['name'], user['email'], user['password'], user_id)
 
 if __name__ == '__main__':
