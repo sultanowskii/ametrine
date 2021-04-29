@@ -16,8 +16,20 @@ def get_login_message(name: str, password: str) -> str:
            f'Password: `{password}`\n'
 
 
-def send_messages(chats: dict):
+# Requires user.csv
+def send_credentials(chats: dict):
+    bad_logins = 0
+    all_logins = 0
+    chats = {}
+
+    with open('users.csv', 'r') as data:
+        users = csv.DictReader(data)
+        for user in users:
+            chats[user['telegram']] = get_login_message(user['name'], user['password'])
+            all_logins += 1
+
     contacts = []
+    # telegram API credentials. Visit https://core.telegram.org/
     client = TelegramClient(API_NAME, api_hash=API_HASH, api_id=API_ID)
     print('[*] Connected to telegram')
 
@@ -49,22 +61,15 @@ def send_messages(chats: dict):
                 await client.send_message(entity=entity, message=message)
             except Exception as e:
                 print(f'[!] Message wasn\'t sent because of error:\n{e}')
+                bad_logins += 1
             print(f'[.] Sent message to {contact}')
 
     with client:
         client.loop.run_until_complete(send())
-    print('[*] Finished successfully')
-
-
-def main():
-    chats = {}
-
-    with open('users.csv', 'r') as data:
-        users = csv.DictReader(data)
-        for user in users:
-            chats[user['telegram']] = get_login_message(user['name'], user['password'])
-    send_messages(chats)
+    percentage = round((all_logins - bad_logins) / all_logins * 100, 2)
+    print(f'[*] {percentage}% of messages sent successfully')
 
 
 if __name__ == '__main__':
-    main()
+    send_credentials()
+    

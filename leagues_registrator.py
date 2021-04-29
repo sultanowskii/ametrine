@@ -1,13 +1,14 @@
 import csv
 import requests
 import json
+from rich.progress import track
 
 from config import *
 from ametrine.classes import *
 from ametrine.funcs import *
 
 
-def main():    
+def register_leagues() -> dict:
     leagues = {}
 
     try:
@@ -23,8 +24,7 @@ def main():
     # Init sessions for each league
     # Get NONCEs for login and some other operations
     # Login to leagues using NONCE
-    print('==========Logging in==========')
-    for league in [leagues[k] for k in leagues.keys()]:
+    for league in track([leagues[k] for k in leagues.keys()], description='Logging in...'):
         league.nonce = get_nonce(league, '/login')
         if login_admin(league):
             print(f'[*] Logged in {league.name} league successfully with handle {league.get_admin_name()}')
@@ -32,10 +32,10 @@ def main():
             print(f'[!] Failed to login to {league.name} with handle {league.get_admin_name()}')
 
     # Team registration
-    print('======Teams registration======')
+    # print('======Teams registration======')
     with open('teams.csv', 'r') as data:
         teams = csv.DictReader(data)
-        for team in teams:
+        for team in track(teams, description='Teams registration...', complete_style=):
             if team['league'] not in leagues.keys():
                 print(f'[!] No correct league provided for team {team["name"]}, skipped')
                 continue
@@ -59,7 +59,7 @@ def main():
     # User registration + adding them to teams
     with open('users.csv', 'r') as data:
         users = csv.DictReader(data)
-        for user in users:
+        for user in track(users, description='User registration...'):
             json_user = {
                 'name': user['name'],
                 'email': user['email'],
@@ -89,6 +89,7 @@ def main():
             r = league.post(f'/api/v1/teams/{team_id}/members', json={'user_id': user_id}, headers={'Content-Type': 'application/json', 'CSRF-Token': csrf})
             print(f'[.] User {user["name"]} added successfully to {user["team"]} team in {user["league"]} league')
             league.teams[user['team']].users[user['name']] = User(user['name'], user['email'], user['password'], user_id)
+    return leagues
 
 if __name__ == '__main__':
-    main()
+    register_leagues()
