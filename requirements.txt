@@ -4,3 +4,6 @@ phonenumbers
 csv
 json
 rich
+inspect
+pandas
+numpy

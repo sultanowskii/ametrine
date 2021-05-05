@@ -60,7 +60,8 @@ class Team:
 		self.banned = banned
 		self.sid = sid
 		self.users = {}
-		self.challenges = {}
+		self.solves = {}
+		self.fails = {}
 
 	def get_password(self) -> str:
 		return self.__password
@@ -74,7 +75,8 @@ class User:
 		self.hidden = hidden
 		self.banned = banned
 		self.sid = sid
-		self.challenges = {}
+		self.solves = {}
+		self.fails = {}
 
 	def get_password(self) -> str:
 		return self.__password

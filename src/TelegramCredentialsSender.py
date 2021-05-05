@@ -3,9 +3,15 @@ from telethon import TelegramClient
 from telethon.tl.types import InputPhoneContact
 from telethon.tl.functions.contacts import ImportContactsRequest, AddContactRequest
 import phonenumbers
+from rich.progress import track
 import csv
 
 from config import *
+
+# telegram API credentials. Visit https://core.telegram.org/
+API_NAME = ''
+API_HASH = ''
+API_ID = ''
 
 
 def get_login_message(name: str, password: str) -> str:
@@ -17,7 +23,7 @@ def get_login_message(name: str, password: str) -> str:
 
 
 # Requires user.csv
-def send_credentials(chats: dict):
+def send_credentials():
     bad_logins = 0
     all_logins = 0
     chats = {}
@@ -29,15 +35,15 @@ def send_credentials(chats: dict):
             all_logins += 1
 
     contacts = []
-    # telegram API credentials. Visit https://core.telegram.org/
     client = TelegramClient(API_NAME, api_hash=API_HASH, api_id=API_ID)
     print('[*] Connected to telegram')
+
 
     async def send():
         cntr = 0
 
         # adding contacts in client to make it possible to send message by number
-        for contact, message in chats.items():
+        for contact, message in track(chats.items(), description='Sending messages...'):
             if not (contact.isdigit() or contact[1:].isdigit()):
                 # surely not phone number, skip it
                 continue
@@ -72,4 +78,3 @@ def send_credentials(chats: dict):
 
 if __name__ == '__main__':
     send_credentials()
-    

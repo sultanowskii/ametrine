@@ -1,41 +1,23 @@
-import csv
 import requests
+import csv
 import json
 from rich.progress import track
 
 from config import *
-from ametrine.classes import *
-from ametrine.funcs import *
+from core.models import *
+from core.funcs import *
 
 
-def register_leagues() -> dict:
-    leagues = {}
-
-    try:
-        with open('leagues.json', 'r') as jdata:
-            leagues_json = json.loads(jdata.read())
-    except Exception as e:
-        print(f'[!] legaues.json is not found or broken. Error:\n{e}')
-        return
-
-    for league_json in [leagues_json[k] for k in leagues_json.keys()]:
-        leagues[league_json['name']] = League(league_json['name'], league_json['url'], league_json['admin_name'], league_json['admin_password'])
-
-    # Init sessions for each league
-    # Get NONCEs for login and some other operations
-    # Login to leagues using NONCE
-    for league in track([leagues[k] for k in leagues.keys()], description='Logging in...'):
-        league.nonce = get_nonce(league, '/login')
-        if login_admin(league):
-            print(f'[*] Logged in {league.name} league successfully with handle {league.get_admin_name()}')
-        else:
-            print(f'[!] Failed to login to {league.name} with handle {league.get_admin_name()}')
+# Please don't forget that `leagues` argument must contain only leagues which you are logged in
+def register_leagues(leagues: dict = {}) -> dict:
+    if not leagues:
+        leagues = login_leagues()
 
     # Team registration
-    # print('======Teams registration======')
+    print('======Teams registration======')
     with open('teams.csv', 'r') as data:
         teams = csv.DictReader(data)
-        for team in track(teams, description='Teams registration...', complete_style=):
+        for team in teams:
             if team['league'] not in leagues.keys():
                 print(f'[!] No correct league provided for team {team["name"]}, skipped')
                 continue
@@ -90,6 +72,7 @@ def register_leagues() -> dict:
             print(f'[.] User {user["name"]} added successfully to {user["team"]} team in {user["league"]} league')
             league.teams[user['team']].users[user['name']] = User(user['name'], user['email'], user['password'], user_id)
     return leagues
+
 
 if __name__ == '__main__':
     register_leagues()
